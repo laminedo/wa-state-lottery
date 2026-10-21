@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Washington State Lottery — Generator & Saved Tickets Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script type="module">
+    // Modern Web Guidance (persistent-toast-notifications): Feature detect 'popover' on HTMLElement.prototype
+    if (!("popover" in HTMLElement.prototype)) {
+      import("https://unpkg.com/@oddbird/popover-polyfill@latest/dist/popover.min.js").catch(() => {});
+    }
+  </script>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon" aria-hidden="true">🌲</div>
+      <div class="logo-text">
+        <h1>Washington's Lottery <span class="badge-wa" id="header-game-badge">WA</span></h1>
+        <p id="header-game-tagline">Official WA Draw Games · Smart Number Generator &amp; Saved Ticket Vault</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button type="button" class="btn" id="btn-sync-live">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+        Sync WA Lottery
+      </button>
+      <button type="button" class="btn primary" id="btn-reforecast">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Re-Forecast
+      </button>
+      <button type="button" class="btn gold" id="btn-jump-saved">
+        <span>★ Saved Tickets</span>
+        <span class="saved-count-pill" id="header-saved-count">0</span>
+      </button>
+      <button type="button" class="btn" id="btn-toggle-history">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><path d="M12 7v5l4 2"/></svg>
+        History &amp; Heatmap
+      </button>
+    </div>
+  </div>
+</header>
+
+<!-- WASHINGTON LOTTERY GAME SWITCHER BAR -->
+<nav class="game-bar-wrap" aria-label="Washington State Lottery Games">
+  <div class="game-bar" id="game-switcher" role="tablist"></div>
+</nav>
+
+<!-- MAIN DASHBOARD GRID -->
+<main>
+
+  <!-- LEFT: Latest Official Winning Numbers -->
+  <section class="panel" aria-labelledby="prev-panel-title">
+    <div class="panel-header">
+      <div class="panel-title" id="prev-panel-title">
+        <span class="dot green"></span>
+        <span id="prev-title-text">Latest Winning Numbers</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span class="tag green" id="official-source-tag">walottery.com Official</span>
+        <button type="button" class="btn sm" id="btn-copy-prev" title="Copy winning numbers">
+          📋 Copy
+        </button>
+      </div>
+    </div>
+
+    <div class="draw-meta">
+      <span>Draw Date: <b id="draw-date">—</b></span>
+      <span>Schedule: <b id="draw-schedule">—</b></span>
+      <span class="gold">Top Prize / Jackpot: <b id="jackpot-amt">—</b></span>
+    </div>
+
+    <div>
+      <div class="section-label" id="drawn-balls-label">Official Drawn Numbers</div>
+      <div class="balls-row" id="prev-balls"></div>
+    </div>
+
+    <div id="mult-strip" style="display:none;gap:8px;align-items:center;font-size:0.75rem;color:var(--muted);">
+      Multiplier: <span class="tag gold" id="mult-val">3×</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="label">Draw Sum</div>
+        <div class="value" id="prev-sum">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Odd / Even</div>
+        <div class="value accent" id="prev-oe">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Ticket Cost</div>
+        <div class="value gold" id="prev-price">—</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RIGHT: Smart-Pick Forecast -->
+  <section class="panel" aria-labelledby="fore-panel-title">
+    <div class="panel-header">
+      <div class="panel-title" id="fore-panel-title">
+        <span class="dot gold pulse"></span>
+        <span>Smart-Pick Forecast</span>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        <span class="tag gold" id="fore-model-tag">WA Frequency + Gap Model</span>
+        <button type="button" class="btn sm primary" id="btn-save-forecast" title="Save forecast line to your Saved Tickets Vault">
+          ★ Save Forecast
+        </button>
+        <button type="button" class="btn sm" id="btn-copy-fore" title="Copy forecast numbers">
+          📋
+        </button>
+      </div>
+    </div>
+
+    <div class="draw-meta">
+      <span>Target Draw: <b id="next-draw-date">Upcoming</b></span>
+      <span>Jackpot Odds: <b id="game-odds-label" style="color:var(--cyan)">—</b></span>
+    </div>
+
+    <div>
+      <div class="section-label">Projected Candidate Line</div>
+      <div class="balls-row" id="fore-balls"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <span class="tag green" id="conf-tag">Pattern Fit: —</span>
+      <span class="tag gold" id="hot-tag">🔥 Hot Balls: —</span>
+      <span class="tag cyan" id="cold-tag">❄️ Overdue Balls: —</span>
+    </div>
+
+    <div class="stats">
+      <div class="stat-card">
+        <div class="label">Projected Sum</div>
+        <div class="value" id="fore-sum">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Odd / Even</div>
+        <div class="value accent" id="fore-oe">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="label">Pattern Fit</div>
+        <div class="value cyan" id="fore-conf">—</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- NUMBER GENERATOR STUDIO -->
+  <section class="panel qp-panel full" aria-labelledby="gen-panel-title">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title" id="gen-panel-title">
+          <span class="dot green"></span>
+          <span>Washington Lottery Number Generator</span>
+        </div>
+        <p style="font-size:0.76rem;color:var(--muted);margin-top:4px;" id="strategy-desc">
+          Cryptographically uniform random selection using Web Crypto API — identical to a Washington Lottery terminal Quick Pick.
+        </p>
+      </div>
+      <div class="qp-controls">
+        <div class="qp-count">
+          <label for="lines-slider">Plays: <b id="lines-count">5</b></label>
+          <input type="range" min="1" max="10" value="5" id="lines-slider" />
+        </div>
+        <button type="button" class="btn" id="btn-toggle-lock-grid">
+          🔒 Lock Lucky Numbers (<span id="locked-count">0</span>)
+        </button>
+        <button type="button" class="btn primary" id="btn-generate-qp">
+          🎲 Generate Plays
+        </button>
+        <button type="button" class="btn gold" id="btn-save-all-qp">
+          💾 Save All Plays
+        </button>
+        <button type="button" class="btn" id="btn-copy-all-qp">
+          📋 Copy Slip
+        </button>
+      </div>
+    </div>
+
+    <!-- Generator Strategy Tabs -->
+    <div class="gen-toolbar">
+      <div class="strategy-group" id="strategy-buttons" role="group" aria-label="Generation strategy"></div>
+      <span style="font-size:0.72rem;color:var(--muted);" id="slip-cost-summary">Slip Cost: —</span>
+    </div>
+
+    <!-- Collapsible Lock Numbers Grid -->
+    <div class="picker-grid-wrap" id="lock-grid-wrap" style="display:none;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+        <span class="section-label" style="margin:0;" id="lock-grid-label">
+          Click numbers below to lock them into every generated play:
+        </span>
+        <button type="button" class="btn sm danger" id="btn-clear-locked">Clear Locked</button>
+      </div>
+      <div class="number-grid" id="lock-number-grid"></div>
+    </div>
+
+    <!-- Generated Lines Container -->
+    <div class="qp-lines-list" id="qp-lines"></div>
+  </section>
+
+  <!-- CUSTOM TICKET BUILDER & NUMBER CHECKER -->
+  <section class="panel full" aria-labelledby="checker-panel-title">
+    <div class="panel-header">
+      <div class="panel-title" id="checker-panel-title">
+        <span class="dot cyan"></span>
+        <span>Custom Ticket Builder &amp; Draw Checker</span>
+      </div>
+      <span style="font-size:0.74rem;color:var(--muted);">
+        Enter your own Washington Lottery ticket numbers to check prizes or save to your vault
+      </span>
+    </div>
+
+    <form class="custom-ticket-form" id="custom-ticket-form" novalidate>
+      <div>
+        <!-- Modern Web Guidance (validate-input-after-interaction): Place format hints above inputs -->
+        <span id="ticket-range-hint" class="hint">Enter numbers within the active game's range.</span>
+        <div class="inputs-row" id="checker-inputs-row"></div>
+        <div id="ticket-input-error" class="error-msg" role="alert">
+          <span aria-hidden="true">⚠️</span> Please enter valid numbers within the required range for each ball position.
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <input
+          type="text"
+          class="note-input"
+          id="custom-ticket-note"
+          placeholder="Optional label (e.g., Family birthdays, Friday slip)..."
+          maxlength="60"
+          aria-label="Ticket label or note"
+        />
+        <button type="button" class="btn primary" id="btn-check-custom">
+          🔍 Check Against Draw
+        </button>
+        <button type="submit" class="btn gold" id="btn-save-custom">
+          ★ Save Custom Ticket
+        </button>
+        <button type="button" class="btn" id="btn-quickfill-custom">
+          🎲 Quick Fill
+        </button>
+        <button type="reset" class="btn" id="btn-clear-custom">
+          Clear
+        </button>
+      </div>
+    </form>
+
+    <div id="check-result" class="check-result" role="status" aria-live="polite"></div>
+  </section>
+
+  <!-- SAVED TICKETS VAULT -->
+  <section class="panel saved-panel full" id="saved-vault-section" aria-labelledby="saved-panel-title">
+    <div class="panel-header">
+      <div>
+        <div class="panel-title" id="saved-panel-title">
+          <span class="dot gold"></span>
+          <span>Saved Tickets Vault &amp; Automatic Prize Verifier</span>
+        </div>
+        <p style="font-size:0.75rem;color:var(--muted);margin-top:4px;">
+          Saved numbers persist in your browser (<code style="color:var(--accent)">localStorage</code> + <code style="color:var(--accent)">IndexedDB</code>) and automatically check against the selected draw.
+        </p>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button type="button" class="btn sm" id="btn-export-json">📥 Export JSON</button>
+        <button type="button" class="btn sm" id="btn-export-csv">📊 Export CSV</button>
+        <label class="btn sm" style="cursor:pointer;">
+          📤 Import JSON
+          <input type="file" id="input-import-json" accept=".json,application/json" style="display:none;" />
+        </label>
+        <button type="button" class="btn sm danger" id="btn-clear-saved">🗑️ Clear Game Saved</button>
+      </div>
+    </div>
+
+    <!-- Saved Tickets KPI Strip -->
+    <div class="saved-kpis">
+      <div class="saved-kpi">
+        <span>Saved Plays (View)</span>
+        <strong id="kpi-saved-total">0</strong>
+      </div>
+      <div class="saved-kpi">
+        <span>Winning Plays (Latest Draw)</span>
+        <strong class="green" id="kpi-saved-winners">0</strong>
+      </div>
+      <div class="saved-kpi">
+        <span>Best Tier Hit</span>
+        <strong id="kpi-saved-best-tier">None Yet</strong>
+      </div>
+      <div class="saved-kpi">
+        <span>Est. Prize Won</span>
+        <strong class="gold" id="kpi-saved-payout">$0</strong>
+      </div>
+    </div>
+
+    <!-- Filter Controls -->
+    <div class="saved-filters">
+      <div class="strategy-group" id="saved-scope-group" role="group" aria-label="Filter saved tickets by game">
+        <button type="button" class="strat-btn active" data-scope="current" id="filter-scope-current">Active Game Only</button>
+        <button type="button" class="strat-btn" data-scope="all" id="filter-scope-all">All WA Games</button>
+      </div>
+      <div class="strategy-group" id="saved-status-group" role="group" aria-label="Filter saved tickets by status">
+        <button type="button" class="strat-btn active" data-status="all">All Plays</button>
+        <button type="button" class="strat-btn" data-status="winners">🏆 Winners Only</button>
+        <button type="button" class="strat-btn" data-status="starred">★ Starred</button>
+      </div>
+    </div>
+
+    <!-- Saved Tickets List -->
+    <div class="saved-list" id="saved-tickets-list"></div>
+  </section>
+
+  <!-- DRAW HISTORY & FREQUENCY HEATMAP -->
+  <section class="panel full" id="history-section" aria-labelledby="history-panel-title">
+    <div class="panel-header">
+      <div class="panel-title" id="history-panel-title">
+        <span class="dot green"></span>
+        <span id="history-title-text">Washington Draw History &amp; Number Frequency Heatmap</span>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input
+          type="search"
+          class="note-input"
+          id="history-search"
+          placeholder="Filter draws by date or number..."
+          aria-label="Filter draw history"
+        />
+      </div>
+    </div>
+
+    <div>
+      <div class="section-label">Ball Frequency Heatmap (Loaded Draws)</div>
+      <div class="heatmap-grid" id="freq-heatmap"></div>
+    </div>
+
+    <div>
+      <div class="section-label">Past Winning Draws (Click any row to inspect &amp; check saved tickets against that draw)</div>
+      <!-- Modern Web Guidance (responsive-table): semantic table in region wrapper with tabindex="0" -->
+      <div tabindex="0" role="region" aria-labelledby="history-table-caption" class="table-wrapper">
+        <table>
+          <caption id="history-table-caption">Washington State Lottery Past Winning Draws</caption>
+          <thead>
+            <tr>
+              <th scope="col">Draw Date</th>
+              <th scope="col">Winning Numbers</th>
+              <th scope="col">Sum / Split</th>
+              <th scope="col">Jackpot / Top Prize</th>
+              <th scope="col">Inspect</th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- PERSISTENT TOAST CONTAINER (Popover API) -->
+<div id="toast-stack" aria-live="polite"></div>
+
+<footer>
+  🌲 Washington State Lottery Dashboard &amp; Generator — Supports WA Lotto, Hit 5, Match 4, Pick 3, Daily Keno, Powerball &amp; Mega Millions. For entertainment &amp; analysis purposes only. Players must be 18+ in Washington State. Play responsibly: 1-800-547-6133 (WA Problem Gambling Helpline).
+</footer>
+
+<script src="games.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
