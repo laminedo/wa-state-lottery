@@ -12,7 +12,7 @@ A standalone, zero-dependency Washington's Lottery dashboard, multi-strategy num
 | **Pick 3** | Pick 3 digits `0–9` | None (Exact / Box / Pair) | $0.50 or $1 | Daily · 8:00 PM PT | $500 ($1 Straight) |
 | **Daily Keno** | Pick 10 spots from `1–80` (20 drawn) | None | $1 per play | Daily · 8:00 PM PT | Up to $500,000 |
 | **Powerball** | Pick 5 from `1–69` | Powerball (`1–26`) | $2 per play | Mon, Wed, Sat · 7:59 PM PT | Rolling Giant Jackpot |
-| **Mega Millions** | Pick 5 from `1–70` | Mega Ball (`1–24`) | $2 per play | Tue, Fri · 8:00 PM PT | Rolling Giant Jackpot |
+| **Mega Millions** | Pick 5 from `1–70` | Mega Ball (`1–24`) | $5 per play (2×–10× multiplier included) | Tue, Fri · 8:00 PM PT | Rolling Giant Jackpot |
 
 ## Key Features
 
@@ -31,9 +31,17 @@ A standalone, zero-dependency Washington's Lottery dashboard, multi-strategy num
 - **Draw History & Frequency Heatmap**:
   - Visual ball frequency heatmap + searchable past drawings table. Click **Inspect Draw** on any past draw to check all saved tickets against that specific drawing.
 
+## Live Results & Jackpots
+
+- **walottery.com** blocks direct requests from other websites, so a GitHub Action ([`.github/workflows/update-lottery-data.yml`](./.github/workflows/update-lottery-data.yml)) runs [`scripts/fetch-lottery-data.mjs`](./scripts/fetch-lottery-data.mjs) every hour. It scrapes the last 180 days of results plus the current jackpot estimates and next draw dates, and commits [`data/wa-lottery.json`](./data/wa-lottery.json) only when something changed.
+- **NY Open Data** is queried directly from the browser for Powerball and Mega Millions, so a new draw can show up before the next scrape.
+- The page syncs automatically on load, every 15 minutes while open, and when you come back to the tab. **Sync WA Lottery** forces a refresh. The status tag next to the winning numbers shows whether you're seeing live data or a saved copy.
+
+To refresh the data by hand: `node scripts/fetch-lottery-data.mjs` (Node 18+, no dependencies).
+
 ## Run Locally
 
-Open [`index.html`](./index.html) directly in any modern browser, or serve locally with Python:
+Serve the folder locally (opening `index.html` directly from disk blocks loading `data/wa-lottery.json`):
 
 ```bash
 python3 -m http.server 8080

@@ -9,7 +9,8 @@
   const STORAGE_KEYS = {
     ACTIVE_GAME: 'wa_lottery_active_game_v1',
     SAVED_TICKETS: 'wa_lottery_saved_tickets_v1',
-    DRAWS_PREFIX: 'wa_lottery_draws_v1_'
+    LIVE_DATA: 'wa_lottery_live_data_v2',
+    LEGACY_DRAWS_PREFIX: 'wa_lottery_draws_v1_'
   };
 
   const DB_NAME = 'wa-state-lottery-vault-db';
@@ -269,83 +270,218 @@
   }
 
   // ── Draw History Loading & Live Sync ────────────────────────────────
+  // Official results and jackpots come from data/wa-lottery.json, which a GitHub
+  // Action scrapes from walottery.com every hour (walottery.com blocks direct
+  // browser requests from other sites). Powerball and Mega Millions are also
+  // pulled live from NY Open Data, which allows browser requests and can be
+  // fresher than the last scrape.
+  const LIVE_DATA_URL = 'data/wa-lottery.json';
+  const AUTO_SYNC_MS = 15 * 60 * 1000;
+
+  let liveData = loadCachedLiveData(); // { updatedAt, games: { [id]: { jackpotValue, cashValue, nextDrawDate, draws } } }
+  let syncState = liveData ? 'cached' : 'loading'; // 'loading' | 'live' | 'cached' | 'error'
+  let lastSyncAt = 0;
+  let syncInFlight = null;
+
+  function loadCachedLiveData() {
+    try {
+      // Draws cached by older versions contained placeholder numbers — drop them.
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith(STORAGE_KEYS.LEGACY_DRAWS_PREFIX))
+        .forEach((k) => localStorage.removeItem(k));
+      const parsed = JSON.parse(localStorage.getItem(STORAGE_KEYS.LIVE_DATA) || 'null');
+      return parsed && parsed.games ? parsed : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveLiveData(data) {
+    try {
+      localStorage.setItem(STORAGE_KEYS.LIVE_DATA, JSON.stringify(data));
+    } catch {
+      // Ignore quota errors — data is refetched on every load anyway
+    }
+  }
+
   function loadDrawsForGame(gameId) {
-    const game = WA_GAMES[gameId];
-    try {
-      const cached = localStorage.getItem(STORAGE_KEYS.DRAWS_PREFIX + gameId);
-      if (cached) {
-        const parsed = JSON.parse(cached);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      }
-    } catch {
-      // Fallback to seeded draws
-    }
-    return [...game.seedDraws];
+    return liveData?.games?.[gameId]?.draws || [];
   }
 
-  function saveDrawsForGame(gameId, draws) {
-    try {
-      localStorage.setItem(STORAGE_KEYS.DRAWS_PREFIX + gameId, JSON.stringify(draws));
-    } catch {
-      // Ignore quota errors
-    }
+  function formatMoney(value) {
+    if (!Number.isFinite(value) || value <= 0) return null;
+    const trim = (n) => n.toFixed(2).replace(/\.?0+$/, '');
+    if (value >= 1e9) return `$${trim(value / 1e9)}B`;
+    if (value >= 1e6) return `$${trim(value / 1e6)}M`;
+    return `$${value.toLocaleString('en-US')}`;
   }
 
-  async function syncOfficialDraws() {
-    const game = getActiveGame();
+  /** Estimated jackpot for the next draw (rolling games) or the fixed top prize. */
+  function getUpcomingJackpotText(game) {
+    return formatMoney(liveData?.games?.[game.id]?.jackpotValue) || game.topPrizeLabel || '—';
+  }
+
+  /** Jackpot that was on offer for a past draw. */
+  function getDrawJackpotText(draw, game) {
+    return formatMoney(draw?.jackpotValue) || game.topPrizeLabel || '—';
+  }
+
+  function getNextDrawText(game) {
+    const iso = liveData?.games?.[game.id]?.nextDrawDate;
+    const todayPacific = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Los_Angeles' });
+    if (!iso || iso < todayPacific) return Engine.getNextDrawDate(game);
+    return new Date(`${iso}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  /** Keep the jackpot prize tier in sync with the live estimate so ticket checks report it. */
+  function applyLiveJackpots() {
+    Object.values(WA_GAMES).forEach((game) => {
+      const value = liveData?.games?.[game.id]?.jackpotValue;
+      const tier = game.prizeTiers.find((t) => t.isJackpot);
+      if (!tier || !game.startingJackpot) return;
+      const prefix = game.id === 'hit5' ? 'CASHPOT' : 'JACKPOT';
+      tier.prize = value || game.startingJackpot;
+      tier.prizeText = value ? `${prefix} (${formatMoney(value)} Est.)` : prefix;
+    });
+  }
+
+  async function fetchJson(url, options) {
+    const res = await fetch(url, { headers: { accept: 'application/json' }, ...options });
+    if (!res.ok) throw new Error(`${url} → HTTP ${res.status}`);
+    return res.json();
+  }
+
+  /** NY Open Data rows → draws in the app's format. */
+  function parseNyRows(rows, game) {
+    return rows
+      .map((r) => {
+        const date = String(r.draw_date || '').slice(0, 10);
+        const nums = String(r.winning_numbers || '').trim().split(/\s+/).map(Number).filter(Number.isFinite);
+        if (!date || nums.length < game.pickCount) return null;
+        const draw = { date, numbers: nums.slice(0, game.pickCount).sort((a, b) => a - b) };
+        // Powerball lists the Powerball as the 6th number; Mega Millions has its own field.
+        const bonus = Number(r.mega_ball ?? nums[game.pickCount]);
+        if (Number.isFinite(bonus)) draw.bonus = bonus;
+        // Mega Millions no longer has a drawn multiplier (it's random per ticket since April 2025).
+        if (game.id === 'powerball' && Number(r.multiplier)) draw.mult = Number(r.multiplier);
+        return draw;
+      })
+      .filter(Boolean);
+  }
+
+  /** Add NY draws that walottery.com data doesn't have yet. WA data wins for dates both have. */
+  function mergeDraws(waDraws, extraDraws) {
+    const byDate = new Map(waDraws.map((d) => [d.date, d]));
+    extraDraws.forEach((d) => {
+      if (!byDate.has(d.date)) byDate.set(d.date, d);
+    });
+    return [...byDate.values()].sort((a, b) => String(b.date).localeCompare(String(a.date)));
+  }
+
+  function renderSyncStatus() {
+    const tag = document.getElementById('official-source-tag');
+    if (!tag) return;
+    const updated = liveData?.updatedAt ? new Date(liveData.updatedAt) : null;
+    const updatedText = updated
+      ? updated.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+      : '';
+    const states = {
+      loading: ['tag cyan', 'Syncing walottery.com…'],
+      live: ['tag green', `walottery.com · updated ${updatedText}`],
+      cached: ['tag gold', `Saved copy · ${updatedText}`],
+      error: ['tag red', 'Results unavailable']
+    };
+    const [cls, text] = states[syncState] || states.loading;
+    tag.className = cls;
+    tag.textContent = text;
+    tag.title = updated ? `Official results last changed ${updated.toLocaleString()}` : '';
+  }
+
+  async function syncOfficialDraws({ silent = false } = {}) {
+    if (!syncInFlight) {
+      syncInFlight = runSync(silent).finally(() => {
+        syncInFlight = null;
+      });
+    }
+    return syncInFlight;
+  }
+
+  async function runSync(silent) {
     const btn = document.getElementById('btn-sync-live');
+    const btnHtml = btn?.innerHTML;
     if (btn) {
       btn.disabled = true;
       btn.textContent = 'Syncing...';
     }
-
-    let addedCount = 0;
-    try {
-      if (game.nyApiUrl) {
-        const res = await fetch(game.nyApiUrl, { headers: { accept: 'application/json' } });
-        if (res.ok) {
-          const rows = await res.json();
-          const existingDates = new Set(currentDraws.map((d) => d.date));
-          rows.forEach((r) => {
-            const date = String(r.draw_date || '').slice(0, 10);
-            const nums = String(r.winning_numbers || '').trim().split(/\s+/).map(Number).filter(Number.isFinite);
-            if (!date || existingDates.has(date)) return;
-            if (nums.length >= game.pickCount) {
-              const white = nums.slice(0, game.pickCount).sort((a, b) => a - b);
-              const bonus = game.hasBonus ? Number(r.mega_ball || nums[game.pickCount] || 1) : null;
-              const mult = Number(r.multiplier) || null;
-              currentDraws.push({
-                date,
-                numbers: white,
-                bonus,
-                mult,
-                jackpot: game.defaultJackpot
-              });
-              existingDates.add(date);
-              addedCount++;
-            }
-          });
-        }
-      }
-    } catch {
-      // Network offline or blocked in sandbox — fallback to verified local WA seed archive
-    } finally {
-      currentDraws.sort((a, b) => String(b.date).localeCompare(String(a.date)));
-      saveDrawsForGame(game.id, currentDraws);
-      selectedDraw = currentDraws[0];
-      renderAll();
-      if (btn) {
-        btn.disabled = false;
-        btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg> Sync WA Lottery`;
-      }
-      showToast(
-        addedCount > 0
-          ? `⚡ Synced ${addedCount} new ${game.name} draws & verified saved tickets!`
-          : `⚡ ${game.name} official draw archive synced (${currentDraws.length} draws loaded).`
-      );
+    if (!liveData) {
+      syncState = 'loading';
+      renderSyncStatus();
     }
+
+    const nyGames = Object.values(WA_GAMES).filter((g) => g.nyApiUrl);
+    const [waResult, ...nyResults] = await Promise.allSettled([
+      fetchJson(LIVE_DATA_URL, { cache: 'no-cache' }),
+      ...nyGames.map((g) => fetchJson(g.nyApiUrl))
+    ]);
+
+    let next = waResult.status === 'fulfilled' && waResult.value?.games ? waResult.value : null;
+    if (!next && liveData) next = JSON.parse(JSON.stringify(liveData));
+
+    nyResults.forEach((result, i) => {
+      if (result.status !== 'fulfilled' || !Array.isArray(result.value)) return;
+      const game = nyGames[i];
+      next = next || { updatedAt: null, games: {} };
+      const entry = next.games[game.id] || (next.games[game.id] = { draws: [] });
+      entry.draws = mergeDraws(entry.draws || [], parseNyRows(result.value, game));
+    });
+
+    const game = getActiveGame();
+    const previousLatest = currentDraws[0]?.date;
+    if (next) {
+      liveData = next;
+      saveLiveData(liveData);
+      applyLiveJackpots();
+    }
+    syncState = waResult.status === 'fulfilled' ? 'live' : liveData ? 'cached' : 'error';
+    lastSyncAt = Date.now();
+
+    currentDraws = loadDrawsForGame(game.id);
+    selectedDraw = currentDraws.find((d) => d.date === selectedDraw?.date) || currentDraws[0] || null;
+    // Analysis-based panels depend on history, so rebuild them when new draws arrive.
+    if (currentDraws[0]?.date !== previousLatest) {
+      generateNewForecast();
+      generateQuickPickSlip();
+    }
+    renderAll();
+
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = btnHtml;
+    }
+    if (!silent) {
+      if (syncState === 'live') {
+        const latest = currentDraws[0];
+        showToast(
+          latest
+            ? `⚡ ${game.name} synced — latest draw ${formatDatePretty(latest.date)}, next jackpot ${getUpcomingJackpotText(game)}.`
+            : `⚠️ Synced, but no ${game.name} results were found.`
+        );
+      } else if (syncState === 'cached') {
+        showToast(`⚠️ Couldn't reach the results feed — showing the saved copy${liveData?.updatedAt ? ` from ${formatDatePretty(liveData.updatedAt.slice(0, 10))}` : ''}.`);
+      } else {
+        showToast('⚠️ Couldn\'t load official results. Check your connection and try again.');
+      }
+    }
+  }
+
+  function startAutoSync() {
+    syncOfficialDraws({ silent: true });
+    setInterval(() => syncOfficialDraws({ silent: true }), AUTO_SYNC_MS);
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && Date.now() - lastSyncAt > 5 * 60 * 1000) {
+        syncOfficialDraws({ silent: true });
+      }
+    });
   }
 
   // ── Ball DOM Builders ───────────────────────────────────────────────
@@ -402,8 +538,7 @@
       btn.setAttribute('role', 'tab');
       btn.setAttribute('aria-selected', game.id === currentGameId ? 'true' : 'false');
 
-      const draws = loadDrawsForGame(game.id);
-      const latestJackpot = draws[0]?.jackpot || game.defaultJackpot;
+      const latestJackpot = getUpcomingJackpotText(game);
 
       btn.innerHTML = `
         <span class="game-pill-badge" style="background:${game.color}">${game.badge}</span>
@@ -429,14 +564,27 @@
   function renderPreviousDrawPanel() {
     const game = getActiveGame();
     const draw = selectedDraw || currentDraws[0];
-    if (!draw) return;
 
     document.getElementById('header-game-badge').textContent = game.badge;
     document.getElementById('header-game-tagline').textContent = `${game.fullName} — ${game.tagline}`;
     document.getElementById('prev-title-text').textContent = `${game.name} Winning Numbers`;
-    document.getElementById('draw-date').textContent = formatDatePretty(draw.date);
     document.getElementById('draw-schedule').textContent = game.drawScheduleLabel;
-    document.getElementById('jackpot-amt').textContent = draw.jackpot || game.defaultJackpot;
+    document.getElementById('prev-price').textContent = game.priceLabel;
+    document.getElementById('jackpot-label').textContent = game.startingJackpot ? 'Jackpot' : 'Top Prize';
+    renderSyncStatus();
+
+    if (!draw) {
+      document.getElementById('draw-date').textContent = syncState === 'error' ? 'Unavailable' : 'Loading…';
+      document.getElementById('jackpot-amt').textContent = '—';
+      document.getElementById('prev-balls').innerHTML = '';
+      document.getElementById('mult-strip').style.display = 'none';
+      document.getElementById('prev-sum').textContent = '—';
+      document.getElementById('prev-oe').textContent = '—';
+      return;
+    }
+
+    document.getElementById('draw-date').textContent = formatDatePretty(draw.date);
+    document.getElementById('jackpot-amt').textContent = getDrawJackpotText(draw, game);
 
     document.getElementById('drawn-balls-label').textContent =
       game.id === 'keno'
@@ -459,7 +607,6 @@
 
     document.getElementById('prev-sum').textContent = computeSum(draw.numbers);
     document.getElementById('prev-oe').textContent = computeOddEven(draw.numbers);
-    document.getElementById('prev-price').textContent = game.priceLabel;
   }
 
   // ── Right Panel: Smart-Pick Forecast ────────────────────────────────
@@ -481,7 +628,9 @@
     const game = getActiveGame();
     if (!currentForecast) generateNewForecast();
 
-    document.getElementById('next-draw-date').textContent = Engine.getNextDrawDate(game);
+    document.getElementById('next-draw-date').textContent = getNextDrawText(game);
+    document.getElementById('next-jackpot-label').textContent = game.startingJackpot ? 'Next Jackpot' : 'Top Prize';
+    document.getElementById('next-jackpot-amt').textContent = getUpcomingJackpotText(game);
     document.getElementById('game-odds-label').textContent = game.oddsLabel;
 
     const foreBallsContainer = document.getElementById('fore-balls');
@@ -756,6 +905,10 @@
 
     const game = getActiveGame();
     const targetDraw = selectedDraw || currentDraws[0];
+    if (!targetDraw) {
+      showToast(`⚠️ ${game.name} results haven't loaded yet — try again in a moment.`);
+      return;
+    }
     const latestCheck = Engine.verifyLineAgainstDraw(parsed, targetDraw, game);
 
     // Also find best historical match across all loaded draws
@@ -1012,7 +1165,7 @@
 
     const filteredDraws = currentDraws.filter((d) => {
       if (!searchTerm) return true;
-      const text = `${d.date} ${formatDatePretty(d.date)} ${d.numbers.join(' ')} ${d.bonus || ''} ${d.jackpot || ''}`.toLowerCase();
+      const text = `${d.date} ${formatDatePretty(d.date)} ${d.numbers.join(' ')} ${d.bonus || ''} ${getDrawJackpotText(d, game)}`.toLowerCase();
       return text.includes(searchTerm);
     });
 
@@ -1046,7 +1199,7 @@
       const tdJackpot = document.createElement('td');
       tdJackpot.style.color = 'var(--gold)';
       tdJackpot.style.fontWeight = '700';
-      tdJackpot.textContent = draw.jackpot || game.defaultJackpot;
+      tdJackpot.textContent = getDrawJackpotText(draw, game);
       tr.appendChild(tdJackpot);
 
       const tdAction = document.createElement('td');
@@ -1172,7 +1325,7 @@
 
   // ── Wire Up Event Listeners ─────────────────────────────────────────
   function bindEvents() {
-    document.getElementById('btn-sync-live')?.addEventListener('click', syncOfficialDraws);
+    document.getElementById('btn-sync-live')?.addEventListener('click', () => syncOfficialDraws());
 
     document.getElementById('btn-reforecast')?.addEventListener('click', () => {
       generateNewForecast();
@@ -1402,6 +1555,8 @@
 
     await loadSavedTicketsFromStorage();
     bindEvents();
+    applyLiveJackpots();
     switchGameAndRender();
+    startAutoSync();
   });
 })();

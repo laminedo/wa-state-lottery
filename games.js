@@ -23,29 +23,13 @@
       drawDays: [1, 3, 6], // Mon, Wed, Sat
       drawScheduleLabel: 'Mon, Wed & Sat · 8:00 PM PT',
       color: '#00e5a0',
-      defaultJackpot: '$3.4M',
+      startingJackpot: 1000000, // live amount comes from data/wa-lottery.json
       oddsLabel: '1 in 6,991,908 (for 2 plays)',
-      waSlug: 'lotto',
-      lotteryUsaSlug: 'lotto',
       prizeTiers: [
-        { match: 6, bonus: false, label: 'Match 6 of 6 — Jackpot', prize: 3400000, isJackpot: true, prizeText: 'JACKPOT ($3.4M Est.)' },
+        { match: 6, bonus: false, label: 'Match 6 of 6 — Jackpot', prize: 1000000, isJackpot: true, prizeText: 'JACKPOT' },
         { match: 5, bonus: false, label: 'Match 5 of 6', prize: 1000, prizeText: '$1,000' },
         { match: 4, bonus: false, label: 'Match 4 of 6', prize: 30, prizeText: '$30' },
         { match: 3, bonus: false, label: 'Match 3 of 6', prize: 3, prizeText: '$3' }
-      ],
-      seedDraws: [
-        { date: '2026-10-19', numbers: [4, 12, 19, 28, 37, 46], jackpot: '$3.4M' },
-        { date: '2026-10-17', numbers: [2, 9, 17, 25, 34, 48], jackpot: '$3.2M' },
-        { date: '2026-10-14', numbers: [6, 14, 21, 30, 41, 49], jackpot: '$3.0M' },
-        { date: '2026-10-12', numbers: [1, 11, 23, 31, 39, 44], jackpot: '$2.8M' },
-        { date: '2026-10-10', numbers: [5, 13, 18, 27, 36, 45], jackpot: '$2.6M' },
-        { date: '2026-10-07', numbers: [3, 8, 16, 29, 38, 47], jackpot: '$2.4M' },
-        { date: '2026-10-05', numbers: [7, 15, 22, 33, 40, 48], jackpot: '$2.2M' },
-        { date: '2026-10-03', numbers: [4, 10, 20, 26, 35, 43], jackpot: '$2.0M' },
-        { date: '2026-09-30', numbers: [2, 12, 24, 32, 41, 46], jackpot: '$1.8M' },
-        { date: '2026-09-28', numbers: [9, 17, 21, 28, 37, 49], jackpot: '$1.6M' },
-        { date: '2026-09-26', numbers: [6, 14, 19, 31, 39, 45], jackpot: '$1.4M' },
-        { date: '2026-09-23', numbers: [1, 8, 15, 27, 34, 42], jackpot: '$1.2M' }
       ]
     },
 
@@ -67,29 +51,13 @@
       drawDays: [0, 1, 2, 3, 4, 5, 6], // Daily
       drawScheduleLabel: 'Daily · 8:00 PM PT',
       color: '#3fd0ff',
-      defaultJackpot: '$245K',
+      startingJackpot: 100000,
       oddsLabel: '1 in 850,668',
-      waSlug: 'hit5',
-      lotteryUsaSlug: 'hit-5',
       prizeTiers: [
-        { match: 5, bonus: false, label: 'Match 5 of 5 — Cashpot', prize: 245000, isJackpot: true, prizeText: 'CASHPOT ($245K Est.)' },
-        { match: 4, bonus: false, label: 'Match 4 of 5', prize: 200, prizeText: '$200' },
+        { match: 5, bonus: false, label: 'Match 5 of 5 — Cashpot', prize: 100000, isJackpot: true, prizeText: 'CASHPOT' },
+        { match: 4, bonus: false, label: 'Match 4 of 5', prize: 150, prizeText: '$150' },
         { match: 3, bonus: false, label: 'Match 3 of 5', prize: 15, prizeText: '$15' },
-        { match: 2, bonus: false, label: 'Match 2 of 5', prize: 1, prizeText: '$1' }
-      ],
-      seedDraws: [
-        { date: '2026-10-20', numbers: [3, 14, 22, 31, 39], jackpot: '$245K' },
-        { date: '2026-10-19', numbers: [7, 11, 25, 34, 41], jackpot: '$220K' },
-        { date: '2026-10-18', numbers: [2, 16, 24, 29, 38], jackpot: '$195K' },
-        { date: '2026-10-17', numbers: [5, 13, 21, 33, 42], jackpot: '$175K' },
-        { date: '2026-10-16', numbers: [1, 9, 18, 27, 36], jackpot: '$155K' },
-        { date: '2026-10-15', numbers: [6, 15, 23, 30, 40], jackpot: '$140K' },
-        { date: '2026-10-14', numbers: [4, 12, 19, 28, 37], jackpot: '$125K' },
-        { date: '2026-10-13', numbers: [8, 17, 22, 35, 41], jackpot: '$110K' },
-        { date: '2026-10-12', numbers: [3, 10, 20, 31, 39], jackpot: '$100K' },
-        { date: '2026-10-11', numbers: [5, 14, 26, 32, 42], jackpot: '$180K' },
-        { date: '2026-10-10', numbers: [2, 11, 24, 33, 38], jackpot: '$160K' },
-        { date: '2026-10-09', numbers: [7, 18, 25, 29, 40], jackpot: '$140K' }
+        { match: 2, bonus: false, label: 'Match 2 of 5', prize: 1, prizeText: 'Free Hit 5 Ticket' }
       ]
     },
 
@@ -111,26 +79,12 @@
       drawDays: [0, 1, 2, 3, 4, 5, 6],
       drawScheduleLabel: 'Daily · 8:00 PM PT',
       color: '#f5c542',
-      defaultJackpot: '$10,000',
+      topPrizeLabel: '$10,000',
       oddsLabel: '1 in 10,626',
-      waSlug: 'match4',
-      lotteryUsaSlug: 'match-4',
       prizeTiers: [
         { match: 4, bonus: false, label: 'Match 4 of 4 — Top Prize', prize: 10000, isJackpot: true, prizeText: '$10,000 TOP PRIZE' },
         { match: 3, bonus: false, label: 'Match 3 of 4', prize: 20, prizeText: '$20' },
         { match: 2, bonus: false, label: 'Match 2 of 4', prize: 2, prizeText: '$2' }
-      ],
-      seedDraws: [
-        { date: '2026-10-20', numbers: [4, 9, 16, 22], jackpot: '$10,000' },
-        { date: '2026-10-19', numbers: [2, 11, 18, 24], jackpot: '$10,000' },
-        { date: '2026-10-18', numbers: [5, 13, 17, 21], jackpot: '$10,000' },
-        { date: '2026-10-17', numbers: [1, 7, 14, 23], jackpot: '$10,000' },
-        { date: '2026-10-16', numbers: [3, 10, 15, 20], jackpot: '$10,000' },
-        { date: '2026-10-15', numbers: [6, 12, 19, 24], jackpot: '$10,000' },
-        { date: '2026-10-14', numbers: [4, 8, 16, 22], jackpot: '$10,000' },
-        { date: '2026-10-13', numbers: [2, 9, 14, 21], jackpot: '$10,000' },
-        { date: '2026-10-12', numbers: [5, 11, 17, 23], jackpot: '$10,000' },
-        { date: '2026-10-11', numbers: [1, 8, 15, 19], jackpot: '$10,000' }
       ]
     },
 
@@ -152,27 +106,13 @@
       drawDays: [0, 1, 2, 3, 4, 5, 6],
       drawScheduleLabel: 'Daily · 8:00 PM PT',
       color: '#a78bfa',
-      defaultJackpot: '$500',
+      topPrizeLabel: '$500',
       oddsLabel: '1 in 1,000 (Exact)',
-      waSlug: 'dailygame',
-      lotteryUsaSlug: 'pick-3',
       prizeTiers: [
         { match: 3, exact: true, label: 'Exact Order (Straight)', prize: 500, isJackpot: true, prizeText: '$500 (Exact Order)' },
         { match: 3, exact: false, box3Way: true, label: 'Any Order (3-Way Box)', prize: 160, prizeText: '$160 (3-Way Box)' },
         { match: 3, exact: false, box6Way: true, label: 'Any Order (6-Way Box)', prize: 80, prizeText: '$80 (6-Way Box)' },
         { match: 2, pair: true, label: 'Front / Back Pair (Exact 2)', prize: 50, prizeText: '$50 (Pair)' }
-      ],
-      seedDraws: [
-        { date: '2026-10-20', numbers: [4, 1, 8], jackpot: '$500' },
-        { date: '2026-10-19', numbers: [7, 3, 7], jackpot: '$500' },
-        { date: '2026-10-18', numbers: [0, 6, 2], jackpot: '$500' },
-        { date: '2026-10-17', numbers: [9, 4, 5], jackpot: '$500' },
-        { date: '2026-10-16', numbers: [2, 8, 1], jackpot: '$500' },
-        { date: '2026-10-15', numbers: [5, 5, 3], jackpot: '$500' },
-        { date: '2026-10-14', numbers: [1, 7, 9], jackpot: '$500' },
-        { date: '2026-10-13', numbers: [6, 0, 4], jackpot: '$500' },
-        { date: '2026-10-12', numbers: [8, 2, 6], jackpot: '$500' },
-        { date: '2026-10-11', numbers: [3, 9, 1], jackpot: '$500' }
       ]
     },
 
@@ -194,26 +134,16 @@
       drawDays: [0, 1, 2, 3, 4, 5, 6],
       drawScheduleLabel: 'Daily · 8:00 PM PT',
       color: '#fb923c',
-      defaultJackpot: '$500K',
+      topPrizeLabel: '$100,000',
       oddsLabel: '1 in 9.05 overall (10-Spot)',
-      waSlug: 'keno',
-      lotteryUsaSlug: 'keno',
       prizeTiers: [
-        { match: 10, bonus: false, label: 'Match 10 of 10 (10-Spot)', prize: 100000, isJackpot: true, prizeText: '$100,000 – $500,000' },
-        { match: 9, bonus: false, label: 'Match 9 of 10', prize: 4250, prizeText: '$4,250' },
-        { match: 8, bonus: false, label: 'Match 8 of 10', prize: 450, prizeText: '$450' },
-        { match: 7, bonus: false, label: 'Match 7 of 10', prize: 40, prizeText: '$40' },
-        { match: 6, bonus: false, label: 'Match 6 of 10', prize: 15, prizeText: '$15' },
+        { match: 10, bonus: false, label: 'Match 10 of 10 (10-Spot)', prize: 100000, isJackpot: true, prizeText: '$100,000' },
+        { match: 9, bonus: false, label: 'Match 9 of 10', prize: 5000, prizeText: '$5,000' },
+        { match: 8, bonus: false, label: 'Match 8 of 10', prize: 500, prizeText: '$500' },
+        { match: 7, bonus: false, label: 'Match 7 of 10', prize: 50, prizeText: '$50' },
+        { match: 6, bonus: false, label: 'Match 6 of 10', prize: 5, prizeText: '$5' },
         { match: 5, bonus: false, label: 'Match 5 of 10', prize: 2, prizeText: '$2' },
-        { match: 0, bonus: false, label: 'Match 0 of 10', prize: 5, prizeText: '$5 (Catch Zero)' }
-      ],
-      seedDraws: [
-        { date: '2026-10-20', numbers: [2, 7, 11, 15, 19, 24, 28, 33, 37, 41, 45, 49, 53, 58, 62, 66, 70, 74, 77, 80], jackpot: '$500K' },
-        { date: '2026-10-19', numbers: [1, 5, 9, 14, 18, 22, 27, 31, 35, 40, 44, 48, 52, 57, 61, 65, 69, 73, 76, 79], jackpot: '$500K' },
-        { date: '2026-10-18', numbers: [3, 8, 12, 16, 21, 25, 29, 34, 38, 42, 46, 51, 55, 59, 63, 68, 71, 75, 78, 80], jackpot: '$500K' },
-        { date: '2026-10-17', numbers: [4, 6, 10, 17, 20, 23, 30, 32, 36, 43, 47, 50, 54, 60, 64, 67, 72, 74, 77, 79], jackpot: '$500K' },
-        { date: '2026-10-16', numbers: [2, 9, 13, 15, 22, 26, 28, 35, 39, 41, 48, 52, 56, 61, 65, 69, 71, 75, 78, 80], jackpot: '$500K' },
-        { date: '2026-10-15', numbers: [1, 7, 11, 18, 21, 24, 31, 33, 37, 44, 46, 53, 57, 60, 64, 68, 70, 73, 76, 79], jackpot: '$500K' }
+        { match: 0, bonus: false, label: 'Match 0 of 10', prize: 3, prizeText: '$3 (Catch Zero)' }
       ]
     },
 
@@ -239,11 +169,11 @@
       drawDays: [1, 3, 6], // Mon, Wed, Sat
       drawScheduleLabel: 'Mon, Wed & Sat · 7:59 PM PT',
       color: '#ff5d73',
-      defaultJackpot: '$215M',
+      startingJackpot: 20000000,
       oddsLabel: '1 in 292,201,338',
-      nyApiUrl: 'https://data.ny.gov/resource/d6yy-54nr.json?$limit=100&$order=draw_date%20DESC',
+      nyApiUrl: 'https://data.ny.gov/resource/d6yy-54nr.json?$limit=10&$order=draw_date%20DESC',
       prizeTiers: [
-        { match: 5, bonus: true, label: '5 + Powerball — Grand Prize', prize: 215000000, isJackpot: true, prizeText: 'JACKPOT ($215M Est.)' },
+        { match: 5, bonus: true, label: '5 + Powerball — Grand Prize', prize: 20000000, isJackpot: true, prizeText: 'JACKPOT' },
         { match: 5, bonus: false, label: '5 White Balls', prize: 1000000, prizeText: '$1,000,000' },
         { match: 4, bonus: true, label: '4 + Powerball', prize: 50000, prizeText: '$50,000' },
         { match: 4, bonus: false, label: '4 White Balls', prize: 100, prizeText: '$100' },
@@ -252,18 +182,6 @@
         { match: 2, bonus: true, label: '2 + Powerball', prize: 7, prizeText: '$7' },
         { match: 1, bonus: true, label: '1 + Powerball', prize: 4, prizeText: '$4' },
         { match: 0, bonus: true, label: 'Powerball Only', prize: 4, prizeText: '$4' }
-      ],
-      seedDraws: [
-        { date: '2026-10-19', numbers: [7, 14, 21, 35, 58], bonus: 12, mult: 3, jackpot: '$215M' },
-        { date: '2026-10-17', numbers: [3, 18, 27, 44, 62], bonus: 8, mult: 2, jackpot: '$198M' },
-        { date: '2026-10-14', numbers: [11, 22, 33, 44, 55], bonus: 19, mult: 4, jackpot: '$180M' },
-        { date: '2026-10-12', numbers: [5, 10, 30, 48, 66], bonus: 3, mult: 3, jackpot: '$155M' },
-        { date: '2026-10-10', numbers: [2, 17, 34, 51, 63], bonus: 21, mult: 2, jackpot: '$140M' },
-        { date: '2026-10-07', numbers: [9, 23, 38, 52, 67], bonus: 15, mult: 5, jackpot: '$120M' },
-        { date: '2026-10-05', numbers: [4, 16, 29, 43, 57], bonus: 6, mult: 3, jackpot: '$105M' },
-        { date: '2026-10-03', numbers: [8, 19, 32, 46, 61], bonus: 11, mult: 2, jackpot: '$92M' },
-        { date: '2026-09-30', numbers: [1, 13, 25, 40, 59], bonus: 17, mult: 4, jackpot: '$78M' },
-        { date: '2026-09-28', numbers: [6, 20, 37, 49, 64], bonus: 24, mult: 3, jackpot: '$65M' }
       ]
     },
 
@@ -272,7 +190,7 @@
       name: 'Mega Millions',
       fullName: 'Washington Mega Millions',
       badge: 'MM',
-      tagline: 'Multi-State Jackpot · 5 White Balls (1–70) + Mega Ball (1–24)',
+      tagline: 'Multi-State Jackpot · 5 White Balls (1–70) + Mega Ball (1–24) · 2×–10× Multiplier on Every Play',
       pickCount: 5,
       drawnCount: 5,
       minNum: 1,
@@ -284,34 +202,24 @@
       bonusMax: 24,
       ordered: false,
       allowRepeat: false,
-      ticketPrice: 2,
-      priceLabel: '$2 per play',
+      ticketPrice: 5,
+      priceLabel: '$5 per play',
       drawDays: [2, 5], // Tue, Fri
       drawScheduleLabel: 'Tue & Fri · 8:00 PM PT',
       color: '#facc15',
-      defaultJackpot: '$310M',
+      startingJackpot: 50000000,
       oddsLabel: '1 in 290,472,336',
-      nyApiUrl: 'https://data.ny.gov/resource/5xaw-6ayf.json?$limit=100&$order=draw_date%20DESC',
+      nyApiUrl: 'https://data.ny.gov/resource/5xaw-6ayf.json?$limit=10&$order=draw_date%20DESC',
       prizeTiers: [
-        { match: 5, bonus: true, label: '5 + Mega Ball — Jackpot', prize: 310000000, isJackpot: true, prizeText: 'JACKPOT ($310M Est.)' },
+        { match: 5, bonus: true, label: '5 + Mega Ball — Jackpot', prize: 50000000, isJackpot: true, prizeText: 'JACKPOT' },
         { match: 5, bonus: false, label: '5 White Balls', prize: 1000000, prizeText: '$1,000,000' },
         { match: 4, bonus: true, label: '4 + Mega Ball', prize: 10000, prizeText: '$10,000' },
         { match: 4, bonus: false, label: '4 White Balls', prize: 500, prizeText: '$500' },
         { match: 3, bonus: true, label: '3 + Mega Ball', prize: 200, prizeText: '$200' },
         { match: 3, bonus: false, label: '3 White Balls', prize: 10, prizeText: '$10' },
         { match: 2, bonus: true, label: '2 + Mega Ball', prize: 10, prizeText: '$10' },
-        { match: 1, bonus: true, label: '1 + Mega Ball', prize: 4, prizeText: '$4' },
-        { match: 0, bonus: true, label: 'Mega Ball Only', prize: 2, prizeText: '$2' }
-      ],
-      seedDraws: [
-        { date: '2026-10-20', numbers: [5, 16, 28, 42, 65], bonus: 14, mult: 3, jackpot: '$310M' },
-        { date: '2026-10-16', numbers: [2, 11, 24, 39, 57], bonus: 9, mult: 4, jackpot: '$285M' },
-        { date: '2026-10-13', numbers: [8, 19, 31, 47, 68], bonus: 22, mult: 2, jackpot: '$260M' },
-        { date: '2026-10-09', numbers: [1, 14, 29, 50, 63], bonus: 5, mult: 3, jackpot: '$235M' },
-        { date: '2026-10-06', numbers: [10, 21, 35, 48, 69], bonus: 17, mult: 3, jackpot: '$210M' },
-        { date: '2026-10-02', numbers: [4, 15, 27, 44, 60], bonus: 11, mult: 2, jackpot: '$188M' },
-        { date: '2026-09-29', numbers: [7, 18, 33, 52, 64], bonus: 3, mult: 4, jackpot: '$165M' },
-        { date: '2026-09-25', numbers: [3, 12, 26, 41, 58], bonus: 19, mult: 3, jackpot: '$142M' }
+        { match: 1, bonus: true, label: '1 + Mega Ball', prize: 7, prizeText: '$7' },
+        { match: 0, bonus: true, label: 'Mega Ball Only', prize: 5, prizeText: '$5' }
       ]
     }
   };
@@ -666,13 +574,14 @@
 
   /* Compute the next scheduled draw date string for a WA game */
   function getNextDrawDate(game) {
-    const now = new Date();
+    // Draws happen at ~8 PM Pacific, so work in Pacific time regardless of the viewer's zone.
+    const pacific = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }));
     for (let i = 0; i <= 7; i++) {
-      const candidate = new Date(now);
-      candidate.setDate(now.getDate() + i);
+      const candidate = new Date(pacific);
+      candidate.setDate(pacific.getDate() + i);
       if (game.drawDays.includes(candidate.getDay())) {
-        // If today is a draw day and it's before 8 PM local, today is the next draw
-        if (i === 0 && now.getHours() >= 20) continue;
+        // If today is a draw day and it's already past 8 PM PT, the next draw is a later day
+        if (i === 0 && pacific.getHours() >= 20) continue;
         return candidate.toLocaleDateString('en-US', {
           weekday: 'short',
           month: 'short',

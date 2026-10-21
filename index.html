@@ -61,7 +61,7 @@
         <span id="prev-title-text">Latest Winning Numbers</span>
       </div>
       <div style="display:flex;gap:6px;align-items:center;">
-        <span class="tag green" id="official-source-tag">walottery.com Official</span>
+        <span class="tag cyan" id="official-source-tag">Syncing walottery.com…</span>
         <button type="button" class="btn sm" id="btn-copy-prev" title="Copy winning numbers">
           📋 Copy
         </button>
@@ -71,7 +71,7 @@
     <div class="draw-meta">
       <span>Draw Date: <b id="draw-date">—</b></span>
       <span>Schedule: <b id="draw-schedule">—</b></span>
-      <span class="gold">Top Prize / Jackpot: <b id="jackpot-amt">—</b></span>
+      <span class="gold"><span id="jackpot-label">Jackpot</span>: <b id="jackpot-amt">—</b></span>
     </div>
 
     <div>
@@ -119,6 +119,7 @@
 
     <div class="draw-meta">
       <span>Target Draw: <b id="next-draw-date">Upcoming</b></span>
+      <span class="gold"><span id="next-jackpot-label">Next Jackpot</span>: <b id="next-jackpot-amt">—</b></span>
       <span>Jackpot Odds: <b id="game-odds-label" style="color:var(--cyan)">—</b></span>
     </div>
 
